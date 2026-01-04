@@ -15,6 +15,7 @@ Route::get('think', function () {
 });
 
 Route::get('hello/:name', 'index/hello');
+Route::any('setup', 'index/setup');
 
 //验证路由
 Route::group('verify', function () {

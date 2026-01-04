@@ -58,63 +58,36 @@
 
 ## 安装步骤
 
-### 1. 克隆项目
+### 即开即用部署（推荐，服务器无需安装依赖）
+
+该方案的目标是：服务器端只做上传与配置运行目录，不在服务器上执行 composer。
+
+1. 准备发布包
+
+- 直接使用仓库自带的 `vendor/`（已包含依赖）
+- 如果你更新了依赖，需要在本地/CI 重新生成 `vendor/`（在 `src/` 目录执行）：
 
 ```bash
-git clone https://github.com/VanillaNahida/group-verify-service.git
-cd group-verify-service
+composer install --no-dev -o
 ```
 
-### 2. 安装依赖
+本地/CI 的 PHP 需要启用以下扩展（否则依赖无法安装或运行时无法连接 SQLite）：
 
-```bash
-composer install
-```
+- fileinfo
+- sqlite3
+- pdo_sqlite
 
-### 3. 配置环境变量
+2. 上传到服务器
 
-复制 `.example.env` 文件为 `.env`，并根据实际情况修改配置：
+- 上传 `src/` 目录下的所有文件（包含 `vendor/`）
+- 站点运行目录/网站目录指向 `public/`（即 `src/public`）
+- 确保 `runtime/`、`database/` 目录可写
 
-```bash
-cp .example.env .env
-```
+3. 首次初始化
 
-必须配置以下关键信息：
-
-- `GEETEST_CAPTCHA_ID`: 极验验证码 ID
-- `GEETEST_CAPTCHA_KEY`: 极验验证码密钥
-- `API_KEY`: API 访问密钥（用于保护 API 接口）
-- `SALT`: 用于 Ticket 生成的盐值，建议使用随机字符串，越复杂越好，长度至少 32 位
-
-### 4. 配置数据库
-
-项目默认使用 SQLite 数据库，数据库文件位于 `database/geetest.db`。
-
-如需使用其他数据库（MySQL、PostgreSQL），请修改 `.env` 文件中的数据库配置：
-
-```env
-DB_DRIVER = mysql
-DB_HOST = 127.0.0.1
-DB_NAME = your_database_name
-DB_USER = your_username
-DB_PASS = your_password
-DB_PORT = 3306
-```
-
-### 5. 初始化数据库
-
-```bash
-php think db:init
-```
-
-### 6. 启动服务
-
-```bash
-# 开发环境
-php think run
-
-# 生产环境建议使用 Nginx + PHP-FPM
-```
+- 访问 `https://你的域名/setup`
+- 按页面提示填写 `GEETEST_CAPTCHA_ID`、`GEETEST_CAPTCHA_KEY`、`API_KEY`、`SALT` 等
+- 提交后会自动生成 `.env` 并初始化 SQLite 数据库
 
 ## 项目结构
 
@@ -397,6 +370,8 @@ php think run
 - 在 `app/model/` 目录下添加模块
 
 ## 配置说明
+
+首次部署时，如果还没有 `.env`，可以直接访问 `/setup` 走页面初始化生成 `.env` 并初始化 SQLite 数据库（`.env` 已存在时该页面会提示无需再次初始化）。
 
 ### 极验配置
 

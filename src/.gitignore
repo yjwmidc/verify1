@@ -6,7 +6,6 @@ composer.lock
 geetest.db
 /.idea
 /.vscode
-/vendor
 /.settings
 /.buildpath
 /.project
