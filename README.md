@@ -140,7 +140,7 @@ src/
 │   ├── middleware.php             # 中间件配置
 │   ├── provider.php               # 服务提供者
 │   └── service.php                # 服务定义
-├── config/               # 配置文件
+├── config/               # 配置文件加载器
 │   ├── app.php                   # 应用配置
 │   ├── database.php              # 数据库配置
 │   ├── geetest.php               # 极验配置
