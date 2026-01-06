@@ -1,56 +1,58 @@
 <template>
-  <div class="page">
-    <a-card :title="title" class="card">
-      <a-spin :loading="loading" style="width: 100%">
-        <a-result v-if="error" status="error" title="加载失败" :subtitle="error" />
-
-        <template v-else>
-          <a-result
-            v-if="verified"
-            status="success"
-            title="验证成功"
-            subtitle="请在群内发送下方验证码完成验证"
-          >
-            <template #extra>
-              <div class="code">{{ code }}</div>
-              <a-typography-paragraph v-if="expireMinutes" style="margin: 12px 0 0; text-align: center">
-                绑定码{{ expireMinutes }}分钟内有效，请及时使用。
-              </a-typography-paragraph>
-              <a-space direction="vertical" size="medium" fill style="margin-top: 16px">
-                <a-button type="primary" long @click="copyCode">复制绑定码</a-button>
-                <a-button long @click="refreshStatus">刷新状态</a-button>
-              </a-space>
-            </template>
-          </a-result>
+  <a-config-provider :locale="arcoLocale">
+    <div class="page">
+      <a-card :title="title" class="card">
+        <a-spin :loading="loading" style="width: 100%">
+          <a-result v-if="error" status="error" :title="t('load_failed')" :subtitle="error" />
 
           <template v-else>
-            <a-typography-paragraph style="margin-top: 0; margin-bottom: 12px">
-              1. 点击“开始验证”完成安全验证<br />
-              2. 获取绑定码后，在群内发送即可
-            </a-typography-paragraph>
-            <div id="captcha" class="captcha-container"></div>
-            <a-space direction="vertical" size="medium" fill>
-              <a-button
-                type="primary"
-                long
-                :loading="submitting"
-                :disabled="submitting || !captchaReady"
-                @click="startCaptcha"
-              >
-                {{ captchaReady ? '开始验证' : '验证码加载中…' }}
-              </a-button>
-              <a-button long :disabled="submitting" @click="refreshStatus">刷新状态</a-button>
-            </a-space>
+            <a-result
+              v-if="verified"
+              status="success"
+              :title="t('title_success')"
+              :subtitle="t('verify_success_subtitle')"
+            >
+              <template #extra>
+                <div class="code">{{ code }}</div>
+                <a-typography-paragraph v-if="expireMinutes" style="margin: 12px 0 0; text-align: center">
+                  {{ t('expire_tip', { minutes: expireMinutes }) }}
+                </a-typography-paragraph>
+                <a-space direction="vertical" size="medium" fill style="margin-top: 16px">
+                  <a-button type="primary" long @click="copyCode">{{ t('copy_code') }}</a-button>
+                  <a-button long @click="refreshStatus">{{ t('refresh_status') }}</a-button>
+                </a-space>
+              </template>
+            </a-result>
+
+            <template v-else>
+              <a-typography-paragraph style="margin-top: 0; margin-bottom: 12px; white-space: pre-line">
+                {{ t('steps') }}
+              </a-typography-paragraph>
+              <div id="captcha" class="captcha-container"></div>
+              <a-space direction="vertical" size="medium" fill>
+                <a-button
+                  type="primary"
+                  long
+                  :loading="submitting"
+                  :disabled="submitting || !captchaReady"
+                  @click="startCaptcha"
+                >
+                  {{ captchaReady ? t('start_verify') : t('captcha_loading') }}
+                </a-button>
+                <a-button long :disabled="submitting" @click="refreshStatus">{{ t('refresh_status') }}</a-button>
+              </a-space>
+            </template>
           </template>
-        </template>
-      </a-spin>
-    </a-card>
-  </div>
+        </a-spin>
+      </a-card>
+    </div>
+  </a-config-provider>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Message, Modal } from '@arco-design/web-vue';
+import { createTranslator, getArcoLocale, getInitialLocale, setLocale as persistLocale } from './i18n';
 
 const ticket = ref('');
 const loading = ref(true);
@@ -61,10 +63,13 @@ const captchaId = ref('');
 const expireMinutes = ref(null);
 const captchaReady = ref(false);
 const submitting = ref(false);
+const locale = ref('zh-CN');
 
 let captchaObj = null;
 
-const title = computed(() => (verified.value ? '验证成功' : '入群验证'));
+const t = createTranslator(() => locale.value);
+const arcoLocale = computed(() => getArcoLocale(locale.value));
+const title = computed(() => (verified.value ? t('title_success') : t('title_default')));
 
 function parseTicketFromPath() {
   const search = window.location.search || '';
@@ -106,7 +111,7 @@ async function copyText(text) {
 }
 
 function showExpired() {
-  error.value = '验证链接已过期或不存在';
+  error.value = t('link_expired_or_missing');
   verified.value = false;
   code.value = '';
   expireMinutes.value = null;
@@ -116,7 +121,7 @@ function initGeetest() {
   if (!captchaId.value) return;
 
   if (typeof window.initGeetest4 === 'undefined') {
-    error.value = '验证码组件加载失败，请刷新页面重试';
+    error.value = t('captcha_component_load_failed');
     captchaReady.value = false;
     return;
   }
@@ -145,13 +150,13 @@ function initGeetest() {
           captchaReady.value = true;
         })
         .onError(() => {
-          error.value = '验证码初始化失败，请刷新页面重试';
+          error.value = t('captcha_init_failed');
           captchaReady.value = false;
         })
         .onSuccess(() => {
           const result = captchaObj && captchaObj.getValidate ? captchaObj.getValidate() : null;
           if (!result) {
-            Message.error('请先完成验证');
+            Message.error(t('please_complete_captcha'));
             return;
           }
           submitVerification(result);
@@ -165,13 +170,13 @@ function initGeetest() {
 
 function startCaptcha() {
   if (!captchaReady.value || !captchaObj) {
-    Message.warning('验证码正在加载，请稍候…');
+    Message.warning(t('captcha_loading_wait'));
     return;
   }
   try {
     captchaObj.showCaptcha();
   } catch (e) {
-    Message.error('验证码出错，请刷新页面重试');
+    Message.error(t('captcha_error_refresh'));
   }
 }
 
@@ -195,15 +200,15 @@ async function submitVerification(geetestResult) {
     if (data && data.code === 0 && data.data && data.data.code) {
       verified.value = true;
       code.value = String(data.data.code);
-      Message.success('验证成功');
+      Message.success(t('verify_success'));
       try {
         await copyText(code.value);
-        Message.success('验证码已复制，可直接在群内粘贴发送');
+        Message.success(t('code_copied_paste'));
       } catch (e) {}
       return;
     }
 
-    Message.error((data && data.msg) || '验证失败，请重试');
+    Message.error((data && data.msg) || t('verify_failed_retry'));
     submitting.value = false;
     if (captchaObj) {
       try {
@@ -211,7 +216,7 @@ async function submitVerification(geetestResult) {
       } catch (e) {}
     }
   } catch (e) {
-    Message.error('网络异常，请稍后重试');
+    Message.error(t('network_error_retry'));
     submitting.value = false;
   }
 }
@@ -220,11 +225,11 @@ async function copyCode() {
   if (!code.value) return;
   try {
     await copyText(code.value);
-    Message.success('验证码已复制');
+    Message.success(t('code_copied'));
   } catch (e) {
     Modal.info({
-      title: '复制失败',
-      content: '请手动复制验证码：' + code.value,
+      title: t('copy_failed'),
+      content: t('copy_failed_manual_prefix') + code.value,
       hideCancel: true
     });
   }
@@ -239,7 +244,7 @@ async function refreshStatus() {
     const data = await res.json();
 
     if (!data || typeof data.code === 'undefined') {
-      error.value = '服务器响应异常';
+      error.value = t('server_response_invalid');
       return;
     }
 
@@ -249,7 +254,7 @@ async function refreshStatus() {
     }
 
     if (data.code !== 0) {
-      error.value = data.msg || '加载失败';
+      error.value = data.msg || t('load_failed');
       return;
     }
 
@@ -274,10 +279,11 @@ async function refreshStatus() {
 }
 
 onMounted(() => {
+  locale.value = persistLocale(getInitialLocale());
   ticket.value = parseTicketFromPath();
   if (!ticket.value) {
     loading.value = false;
-    error.value = '无效的验证链接';
+    error.value = t('invalid_link');
     return;
   }
   refreshStatus();

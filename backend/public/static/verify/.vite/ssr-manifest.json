@@ -390,7 +390,10 @@
   "node_modules/@arco-design/web-vue/es/list/list.js": [],
   "node_modules/@arco-design/web-vue/es/list/use-pagination.js": [],
   "node_modules/@arco-design/web-vue/es/locale/index.js": [],
+  "node_modules/@arco-design/web-vue/es/locale/lang/en-us.js": [],
+  "node_modules/@arco-design/web-vue/es/locale/lang/ja-jp.js": [],
   "node_modules/@arco-design/web-vue/es/locale/lang/zh-cn.js": [],
+  "node_modules/@arco-design/web-vue/es/locale/lang/zh-tw.js": [],
   "node_modules/@arco-design/web-vue/es/mention/index.js": [],
   "node_modules/@arco-design/web-vue/es/mention/mention.js": [],
   "node_modules/@arco-design/web-vue/es/mention/utils.js": [],
@@ -647,6 +650,7 @@
   "node_modules/vite-ssg/dist/shared/vite-ssg.C6pK7rvr.mjs": [],
   "node_modules/vite-ssg/dist/shared/vite-ssg.ETIvV-80.mjs": [],
   "src/App.vue": [],
-  "src/App.vue?vue&type=style&index=0&scoped=aee2c179&lang.css": [],
+  "src/App.vue?vue&type=style&index=0&scoped=b47e87f2&lang.css": [],
+  "src/i18n.js": [],
   "src/main.js": []
 }
