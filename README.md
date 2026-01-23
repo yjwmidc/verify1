@@ -18,16 +18,16 @@
 
 ## 项目简介
 
-为项目[astrbot_plugin_group_geetest_verify](https://github.com/VanillaNahida/astrbot_plugin_group_geetest_verify)群聊入群验证插件开发的后端，使用极验Geetest V4实现入群人机验证处理，基于 ThinkPHP 8 框架开发的极验验证码服务，提供完整的人机验证解决方案，通过生成验证链接、受试者访问链接验证获取验证码，再把验证码发到群聊，机器人收到验证码后，调用后端接口验证验证码是否正确，若正确则允许入群，否则拒绝入群。
+为项目 [astrbot_plugin_group_geetest_verify](https://github.com/VanillaNahida/astrbot_plugin_group_geetest_verify) 群聊入群验证插件开发的后端，使用极验Geetest V4实现入群人机验证处理，基于 ThinkPHP 8 框架开发的极验验证码服务，提供完整的人机验证解决方案，通过生成验证链接、受试者访问链接验证获取验证码，再把验证码发到群聊，机器人收到验证码后，调用后端接口验证验证码是否正确，若正确则允许入群，否则拒绝入群。
 
 ## 效果展示
 
 <div align="center">
-<img src="img/1.png" alt="效果图1" width="600" />
+<img src="img/4.png" alt="效果图1" width="400" />
 <br />
-<img src="img/2.png" alt="效果图2" width="600" />
+<img src="img/5.png" alt="效果图2" width="400" />
 <br />
-<img src="img/3.png" alt="效果图3" width="600" />
+<img src="img/6.png" alt="效果图3" width="400" />
 </div>
 
 ## 主要功能
