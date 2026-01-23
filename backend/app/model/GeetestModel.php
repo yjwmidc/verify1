@@ -13,6 +13,7 @@ class GeetestModel
     protected static string $salt;
     protected static bool $initialized = false;
     protected static bool $settingsReady = false;
+    protected static bool $ownershipReady = false;
 
     protected static function ensureSettingsReady(): void
     {
@@ -113,6 +114,40 @@ class GeetestModel
         self::$initialized = true;
     }
 
+    protected static function ensureOwnershipReady(): void
+    {
+        if (self::$ownershipReady) {
+            return;
+        }
+
+        try {
+            Db::query('SELECT api_key_id FROM `GeetestTable` LIMIT 1');
+            self::$ownershipReady = true;
+            return;
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            try {
+                Db::execute('ALTER TABLE `GeetestTable` ADD COLUMN `api_key_id` INTEGER DEFAULT NULL');
+            } catch (\Throwable $e) {
+                Db::execute('ALTER TABLE `GeetestTable` ADD COLUMN `api_key_id` INT UNSIGNED NULL');
+            }
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            Db::execute('CREATE INDEX IF NOT EXISTS `idx_api_key_expire` ON `GeetestTable` (`api_key_id`, `expire_at`)');
+        } catch (\Throwable $e) {
+            try {
+                Db::execute('CREATE INDEX `idx_api_key_expire` ON `GeetestTable` (`api_key_id`, `expire_at`)');
+            } catch (\Throwable $e2) {
+            }
+        }
+
+        self::$ownershipReady = true;
+    }
+
     public static function generateToken(string $gid, string $uid)
     {
         self::initConfig();
@@ -135,9 +170,11 @@ class GeetestModel
     public static function saveVerifyData(string $token, array $data)
     {
         self::initConfig();
+        self::ensureOwnershipReady();
 
         $validate = new GeetestTable();
         $validate->token = $token;
+        $validate->api_key_id = (int)($data['api_key_id'] ?? 0);
         $validate->group_id = $data['group_id'];
         $validate->user_id = $data['user_id'];
         $validate->code = $data['code'] ?? null;
@@ -291,8 +328,30 @@ class GeetestModel
     public static function cleanExpiredCodes()
     {
         self::initConfig();
+        self::ensureOwnershipReady();
 
-        return GeetestTable::where('expire_at', '<', time())->delete();
+        $apiKeyId = 0;
+        try {
+            $apiKeyId = (int)Request::middleware('api_key_id', 0);
+        } catch (\Throwable $e) {
+            $apiKeyId = 0;
+        }
+
+        $isDefault = false;
+        try {
+            $isDefault = (bool)Request::middleware('api_key_is_default', false);
+        } catch (\Throwable $e) {
+            $isDefault = false;
+        }
+
+        $q = GeetestTable::where('expire_at', '<', time());
+        if (!$isDefault && $apiKeyId > 0) {
+            $q = $q->where('api_key_id', $apiKeyId);
+        } elseif (!$isDefault) {
+            $q = $q->where('api_key_id', -1);
+        }
+
+        return $q->delete();
     }
 
     public static function markCodeAsUsed(string $code, string $gid)

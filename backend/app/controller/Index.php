@@ -294,13 +294,14 @@ class Index extends BaseController
             } catch (\Throwable $e) {
             }
 
+            $rawApiKey = (string)($values['api_key'] ?? '');
             $pairs = [
                 'APP_DEBUG' => strtolower((string)$values['app_debug']),
                 'GEETEST_CAPTCHA_ID' => (string)$values['geetest_captcha_id'],
                 'GEETEST_CAPTCHA_KEY' => (string)$values['geetest_captcha_key'],
                 'GEETEST_API_SERVER' => (string)$values['geetest_api_server'],
                 'GEETEST_CODE_EXPIRE' => (string)$values['geetest_code_expire'],
-                'API_KEY' => (string)$values['api_key'],
+                'API_KEY' => '',
                 'SALT' => (string)$values['salt'],
             ];
 
@@ -324,11 +325,73 @@ class Index extends BaseController
                     ]);
                 }
             }
+
+            $pdo->exec('CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value TEXT NOT NULL,
+                created_at INTEGER UNSIGNED NOT NULL,
+                updated_at INTEGER UNSIGNED NOT NULL
+            )');
+            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uniq_api_keys_value ON api_keys(value)');
+
+            try {
+                $pdo->exec('DELETE FROM api_keys');
+            } catch (\Throwable $e) {
+            }
+
+            $keys = $this->parseApiKeys($rawApiKey);
+            if ($keys) {
+                $insertKeyStmt = $pdo->prepare('INSERT OR IGNORE INTO api_keys (value, created_at, updated_at) VALUES (:value, :created_at, :updated_at)');
+                foreach ($keys as $k) {
+                    $insertKeyStmt->execute([
+                        ':value' => $k,
+                        ':created_at' => $ts,
+                        ':updated_at' => $ts,
+                    ]);
+                }
+            }
         } catch (\Throwable $e) {
             return '写入配置到数据库失败：' . $e->getMessage();
         }
 
         return true;
+    }
+
+    private function parseApiKeys(string $raw): array
+    {
+        $v = trim($raw);
+        if ($v === '') {
+            return [];
+        }
+
+        if (str_starts_with($v, '[') && str_ends_with($v, ']')) {
+            $decoded = json_decode($v, true);
+            if (is_array($decoded)) {
+                $keys = [];
+                foreach ($decoded as $it) {
+                    if (!is_string($it)) {
+                        continue;
+                    }
+                    $k = trim($it);
+                    if ($k === '') {
+                        continue;
+                    }
+                    $keys[$k] = true;
+                }
+                return array_keys($keys);
+            }
+        }
+
+        $parts = preg_split('/[,\s;，；]+/u', $v) ?: [];
+        $keys = [];
+        foreach ($parts as $p) {
+            $k = trim((string)$p);
+            if ($k === '') {
+                continue;
+            }
+            $keys[$k] = true;
+        }
+        return array_keys($keys);
     }
 
     private function renderSetupDone(): string
@@ -362,7 +425,7 @@ class Index extends BaseController
   </ol>
   <section class="panel active">
     <h2>初始化成功</h2>
-    <p class="desc">已生成 <span class="mono">.env</span>（仅数据库连接）并初始化 SQLite 数据库，同时写入配置到 <span class="mono">settings</span> 表。</p>
+    <p class="desc">已生成 <span class="mono">.env</span>（仅数据库连接）并初始化 SQLite 数据库，同时写入配置到 <span class="mono">settings</span> 与 <span class="mono">api_keys</span> 表。</p>
   </section>
 </div>';
 
@@ -428,7 +491,7 @@ class Index extends BaseController
 
     <section class="panel" data-panel="2">
       <h2>步骤 2：填写配置</h2>
-      <p class="desc">这些配置会写入 SQLite 数据库的 <span class="mono">settings</span> 表；<span class="mono">backend/.env</span> 仅保存数据库连接信息。提交后会自动初始化 SQLite 数据库（默认 <span class="mono">backend/database/geetest.db</span>）。</p>
+      <p class="desc">这些配置会写入 SQLite 数据库的 <span class="mono">settings</span> 表；其中 <span class="mono">API_KEY</span> 会写入 <span class="mono">api_keys</span> 表。<span class="mono">backend/.env</span> 仅保存数据库连接信息。提交后会自动初始化 SQLite 数据库（默认 <span class="mono">backend/database/geetest.db</span>）。</p>
 
       <div class="group">
         <div class="group-title">极验配置</div>
@@ -489,7 +552,7 @@ class Index extends BaseController
 
     <section class="panel" data-panel="3">
       <h2>步骤 3：确认生成</h2>
-      <p class="desc">将生成 <span class="mono">backend/.env</span>（仅数据库连接）并初始化数据库，同时写入配置到 <span class="mono">settings</span> 表。请确认配置无误。</p>
+      <p class="desc">将生成 <span class="mono">backend/.env</span>（仅数据库连接）并初始化数据库，同时写入配置到 <span class="mono">settings</span> 与 <span class="mono">api_keys</span> 表。请确认配置无误。</p>
       <div class="confirm"><pre class="mono" id="confirmText"></pre></div>
       <div class="tips"><p>点击“生成”后，如果失败会显示具体错误原因；修正后重新提交即可。</p></div>
     </section>
